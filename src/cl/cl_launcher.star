@@ -6,6 +6,8 @@ nimbus = import_module("./nimbus/nimbus_launcher.star")
 prysm = import_module("./prysm/prysm_launcher.star")
 teku = import_module("./teku/teku_launcher.star")
 grandine = import_module("./grandine/grandine_launcher.star")
+consensoor = import_module("./consensoor/consensoor_launcher.star")
+caplin = import_module("./caplin/caplin_launcher.star")
 
 constants = import_module("../package_io/constants.star")
 input_parser = import_module("../package_io/input_parser.star")
@@ -36,6 +38,7 @@ def launch(
     extra_files_artifacts,
     backend,
     bootnodoor_enr=None,
+    binary_artifacts={},
 ):
     plan.print("Launching CL network")
 
@@ -95,6 +98,26 @@ def launch(
             "get_beacon_config": grandine.get_beacon_config,
             "get_cl_context": grandine.get_cl_context,
             "get_blobber_config": grandine.get_blobber_config,
+        },
+        constants.CL_TYPE.consensoor: {
+            "launcher": consensoor.new_consensoor_launcher(
+                el_cl_data,
+                jwt_file,
+            ),
+            "launch_method": consensoor.launch,
+            "get_beacon_config": consensoor.get_beacon_config,
+            "get_cl_context": consensoor.get_cl_context,
+            "get_blobber_config": consensoor.get_blobber_config,
+        },
+        constants.CL_TYPE.caplin: {
+            "launcher": caplin.new_caplin_launcher(
+                el_cl_data,
+                jwt_file,
+            ),
+            "launch_method": caplin.launch,
+            "get_beacon_config": caplin.get_beacon_config,
+            "get_cl_context": caplin.get_cl_context,
+            "get_blobber_config": caplin.get_blobber_config,
         },
     }
 
@@ -184,6 +207,7 @@ def launch(
                 args_with_right_defaults.port_publisher,
                 global_other_index,
                 args_with_right_defaults.docker_cache_params,
+                args_with_right_defaults.snooper_params,
             )
             global_other_index += 1
             plan.print(
@@ -225,6 +249,9 @@ def launch(
 
         all_snooper_el_engine_contexts.append(snooper_el_engine_context)
         full_name = "{0}-{1}-{2}".format(index_str, el_type, cl_type)
+
+        cl_binary_artifact = binary_artifacts.get(index, {}).get("cl", None)
+
         if index == 0:
             cl_context = launch_method(
                 plan,
@@ -249,6 +276,7 @@ def launch(
                 backend,
                 tempo_otlp_grpc_url,
                 bootnode_enr_override,
+                cl_binary_artifact,
             )
 
             blobber_config = get_blobber_config(
@@ -300,6 +328,7 @@ def launch(
                 backend,
                 tempo_otlp_grpc_url,
                 bootnode_enr_override,
+                cl_binary_artifact,
             )
 
             cl_participant_info[cl_service_name] = {
@@ -310,12 +339,13 @@ def launch(
                 "get_cl_context": get_cl_context,
                 "get_blobber_config": get_blobber_config,
                 "participant_index": index,
+                "cl_type": cl_type,
             }
 
     # add rest of cl's in parallel to speed package execution
-    cl_services = {}
-    if len(cl_service_configs) > 0:
-        cl_services = plan.add_services(cl_service_configs)
+    cl_services = shared_utils.add_services_with_force_restart(
+        plan, cl_service_configs, cl_participant_info, "cl_force_restart"
+    )
 
     # Create CL contexts ordered by participant index
     cl_contexts_temp = {}

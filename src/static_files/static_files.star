@@ -67,6 +67,12 @@ SPAMOOR_HOSTS_TEMPLATE_FILEPATH = (
     STATIC_FILES_DIRPATH + SPAMOOR_CONFIG_DIRPATH + "/rpc-hosts.txt.tmpl"
 )
 
+# slashoor config
+SLASHOOR_CONFIG_DIRPATH = "/slashoor-config"
+SLASHOOR_CONFIG_TEMPLATE_FILEPATH = (
+    STATIC_FILES_DIRPATH + SLASHOOR_CONFIG_DIRPATH + "/config.yaml.tmpl"
+)
+
 # xatu-sentry config
 XATU_SENTRY_CONFIG_DIRPATH = "/xatu-sentry-config"
 XATU_SENTRY_CONFIG_TEMPLATE_FILEPATH = (
@@ -135,3 +141,7 @@ MEMPOOL_BRIDGE_CONFIG_TEMPLATE_FILEPATH = (
     STATIC_FILES_DIRPATH + "/mempool-bridge-config/config.yaml.tmpl"
 )
 HELIX_RELAY_CONFIG_FILEPATH = STATIC_FILES_DIRPATH + "/mev/helix/config.yaml.tmpl"
+
+ZKBOOST_CONFIG_TEMPLATE_FILEPATH = (
+    STATIC_FILES_DIRPATH + "/zkboost-config/config.toml.tmpl"
+)

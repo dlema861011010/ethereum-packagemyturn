@@ -33,8 +33,6 @@ Optional features (enabled via flags or parameter files at runtime):
 
 ## Quickstart
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/new/?editor=code#https://github.com/ethpandaops/ethereum-package)
-
 1. [Install Docker & start the Docker Daemon if you haven't done so already][docker-installation]
 2. [Install the Kurtosis CLI, or upgrade it to the latest version if it's already installed][kurtosis-cli-installation]
 3. Run the package with default configurations from the command line:
@@ -193,11 +191,28 @@ participants:
     # - dummy: ethpandaops/dummy-el:master
     el_image: ""
 
+    # Path to a local EL binary to inject into the container (Docker only)
+    # When set, the binary will be uploaded and mounted into the container,
+    # replacing the default binary from the Docker image
+    # Useful for rapid debugging with locally compiled binaries
+    # IMPORTANT: el_force_restart must be set to true when using this option
+    # IMPORTANT: The binary file must live inside the ethereum-package directory
+    # Build the client in its own repo, then copy ONLY the binary to ethereum-package
+    # Do not run builds inside ethereum-package or copy build dependencies - only the final binary
+    # IMPORTANT: The binary must be compiled on a Linux system with compatible libraries
+    # matching those in the client's Dockerfile to avoid dependency issues
+    # Example workflow (from reth repo):
+    #   cargo build --release --bin reth && cp target/release/reth ../ethereum-package/binaries/
+    # Then set: el_binary_path: "./binaries/reth"
+    el_binary_path: ""
+
     # The log level string that this participant's EL client should log at
     # If this is emptystring then the global `logLevel` parameter's value will be translated into a string appropriate for the client (e.g. if
     # global `logLevel` = `info` then Geth would receive `3`, Besu would receive `INFO`, etc.)
     # If this is not emptystring, then this value will override the global `logLevel` setting to allow for fine-grained control
     # over a specific participant's logging
+    # Set to "custom" (Besu only) to disable global logging settings and leave it up to the client configuration,
+    # for example, when using a custom log4j2.xml file
     el_log_level: ""
 
     # The storage type for the EL client: "full" or "archive"
@@ -257,6 +272,12 @@ participants:
     el_min_mem: 0
     el_max_mem: 0
 
+    # Force container recreation on next run (Docker only)
+    # When set to true, the container will be recreated even if the image tag hasn't changed
+    # Useful when rebuilding Docker images with the same tag or recompiling binaries with the same name
+    # Defaults to false
+    el_force_restart: false
+
   # CL(Consensus Layer) Specific flags
     # The type of CL client that should be started
     # Valid values are nimbus, lighthouse, lodestar, teku, prysm, and grandine
@@ -272,11 +293,28 @@ participants:
     # - grandine: sifrai/grandine:stable
     cl_image: ""
 
+    # Path to a local CL binary to inject into the container (Docker only)
+    # When set, the binary will be uploaded and mounted into the container,
+    # replacing the default binary from the Docker image
+    # Useful for rapid debugging with locally compiled binaries
+    # IMPORTANT: cl_force_restart must be set to true when using this option
+    # IMPORTANT: The binary file must live inside the ethereum-package directory
+    # Build the client in its own repo, then copy ONLY the binary to ethereum-package
+    # Do not run builds inside ethereum-package or copy build dependencies - only the final binary
+    # IMPORTANT: The binary must be compiled on a Linux system with compatible libraries
+    # matching those in the client's Dockerfile to avoid dependency issues
+    # Example workflow (from lighthouse repo):
+    #   cargo build --release --bin lighthouse && cp target/release/lighthouse ../ethereum-package/binaries/
+    # Then set: cl_binary_path: "./binaries/lighthouse"
+    cl_binary_path: ""
+
     # The log level string that this participant's CL client should log at
     # If this is emptystring then the global `logLevel` parameter's value will be translated into a string appropriate for the client (e.g. if
     # global `logLevel` = `info` then Teku would receive `INFO`, Prysm would receive `info`, etc.)
     # If this is not emptystring, then this value will override the global `logLevel` setting to allow for fine-grained control
     # over a specific participant's logging
+    # Set to "custom" (Teku only) to disable global logging settings and leave it up to the client configuration,
+    # for example, when using a custom log4j.xml file
     cl_log_level: ""
 
     # A list of optional extra env_vars the cl container should spin up with
@@ -327,6 +365,12 @@ participants:
     cl_min_mem: 0
     cl_max_mem: 0
 
+    # Force container recreation on next run (Docker only)
+    # When set to true, the container will be recreated even if the image tag hasn't changed
+    # Useful when rebuilding Docker images with the same tag or recompiling binaries with the same name
+    # Defaults to false
+    cl_force_restart: false
+
     # Whether to act as a supernode for the network
     # Supernodes will subscribe to all subnet topics
     # This flag should only be used with peerdas
@@ -353,6 +397,21 @@ participants:
     # - teku: ethpandaops/teku:master
     # - vero: ghcr.io/serenita-org/vero:latest
     vc_image: ""
+
+    # Path to a local VC binary to inject into the container (Docker only)
+    # When set, the binary will be uploaded and mounted into the container,
+    # replacing the default binary from the Docker image
+    # Useful for rapid debugging with locally compiled binaries
+    # IMPORTANT: vc_force_restart must be set to true when using this option
+    # IMPORTANT: The binary file must live inside the ethereum-package directory
+    # Build the client in its own repo, then copy ONLY the binary to ethereum-package
+    # Do not run builds inside ethereum-package or copy build dependencies - only the final binary
+    # IMPORTANT: The binary must be compiled on a Linux system with compatible libraries
+    # matching those in the client's Dockerfile to avoid dependency issues
+    # Example workflow (from lighthouse repo):
+    #   cargo build --release --bin lighthouse && cp target/release/lighthouse ../ethereum-package/binaries/
+    # Then set: vc_binary_path: "./binaries/lighthouse"
+    vc_binary_path: ""
 
     # The log level string that this participant's validator client should log at
     # If this is emptystring then the global `logLevel` parameter's value will be translated into a string appropriate for the client (e.g. if
@@ -403,6 +462,12 @@ participants:
     vc_max_cpu: 0
     vc_min_mem: 0
     vc_max_mem: 0
+
+    # Force container recreation on next run (Docker only)
+    # When set to true, the container will be recreated even if the image tag hasn't changed
+    # Useful when rebuilding Docker images with the same tag or recompiling binaries with the same name
+    # Defaults to false
+    vc_force_restart: false
 
     # A list of indices of the beacon nodes that the validator client should connect to
     # Defaults to null
@@ -480,12 +545,6 @@ participants:
     # Count of nodes to spin up for this participant
     # Default to 1
     count: 1
-
-    # Snooper local flag for a participant.
-    # Snooper can be enabled with the `snooper_enabled` flag per client or globally
-    # Snooper dumps all JSON-RPC requests and responses including BeaconAPI, EngineAPI and ExecutionAPI.
-    # Default to null
-    snooper_enabled: null
 
     # Enables Ethereum Metrics Exporter for this participant. Can be set globally.
     # Defaults null and then set to global ethereum_metrics_exporter_enabled (false)
@@ -600,7 +659,7 @@ network_params:
   # Defaults to 7500 basis points (75% of slot duration)
   payload_attestation_due_bps: 7500
 
-  # EIP-7805 timing parameters
+  # Heze timing parameters
   # View freeze cutoff timing
   # Defaults to 7500 basis points (75% of slot duration)
   view_freeze_cutoff_bps: 7500
@@ -616,10 +675,6 @@ network_params:
   # Maximum request blocks for Deneb fork
   # Defaults to 128
   max_request_blocks_deneb: 128
-
-  # Maximum request blob sidecars for Electra fork
-  # Defaults to 1152 (128 * 9 blobs)
-  max_request_blob_sidecars_electra: 1152
 
   # The number of validator keys that each CL validator node should get
   num_validator_keys_per_node: 128
@@ -683,6 +738,10 @@ network_params:
   # Defaults to 65536
   churn_limit_quotient: 65536
 
+  # Byzantine threshold (in percent) used by the confirmation rule
+  # Defaults to 25
+  confirmation_byzantine_threshold: 25
+
   # Ejection balance
   # Defaults to 16ETH
   # 16000000000 gwei
@@ -695,6 +754,10 @@ network_params:
   # The number of epochs to wait validators to be able to withdraw
   # Defaults to 256 epochs ~27 hours
   min_validator_withdrawability_delay: 256
+
+  # The minimum number of epochs for builder withdrawability delay
+  # Defaults to 4096, 8 for minimal preset
+  min_builder_withdrawability_delay: 4096
 
   # The period of the shard committee
   # Defaults to 256 epoch ~27 hours
@@ -748,8 +811,6 @@ network_params:
   # Example: shadowfork_block_height: 340000 for hoodi
   shadowfork_block_height: "latest"
 
-  # The number of data column sidecar subnets used in the gossipsub protocol
-  data_column_sidecar_subnet_count: 128
   # Number of DataColumn random samples a node queries per slot
   samples_per_slot: 8
 
@@ -764,9 +825,9 @@ network_params:
   # Base fee update fraction for Electra fork (default 5007716)
   base_fee_update_fraction_electra: 5007716
 
-  # EIP-7805 fork epoch
+  # Heze fork epoch
   # Defaults to 18446744073709551615
-  eip7805_fork_epoch: 18446744073709551615
+  heze_fork_epoch: 18446744073709551615
 
 
   # Preset for the network
@@ -875,9 +936,15 @@ network_params:
   # Default to 4096
   min_epochs_for_data_column_sidecars_requests: 4096
 
-  # Minimum number of epochs for block requests
-  # Default to 33024
-  min_epochs_for_block_requests: 33024
+  # Number of ePBS builders to register at genesis with 0x03 withdrawal credentials
+  # Requires gloas_fork_epoch to be 0 (GLOAS at genesis)
+  # Default to 0
+  builder_count: 0
+
+  # Balance of each builder in ETH
+  # Default to 100 ETH
+  builder_balance: 100
+
 
 # Global parameters for the network
 
@@ -896,12 +963,15 @@ additional_services:
   - dora
   - dugtrio
   - erpc
+  - zkboost
   - forkmon
   - forky
   - full_beaconchain_explorer
   - grafana
   - mempool_bridge
   - prometheus
+  - rakoon
+  - slashoor
   - spamoor
   - tempo
   - tracoor
@@ -954,6 +1024,26 @@ tx_fuzz_params:
   # A list of optional extra params that will be passed to the TX Spammer container for modifying its behaviour
   tx_fuzz_extra_args: []
 
+# Configuration place for rakoon transaction fuzzer - https://github.com/protocol-security/fuzztools
+rakoon_params:
+  # Rakoon docker image to use
+  image: "ethpandaops/fuzztools:v1"
+  # Transaction type to fuzz (eip7702, eip1559, eip2930, legacy)
+  # Note: blob transactions are not supported by design
+  tx_type: "eip7702"
+  # Number of concurrent workers
+  workers: 50
+  # Number of transactions per batch
+  batch_size: 100
+  # Seed for reproducible fuzzing (empty string = random)
+  seed: ""
+  # Enable fuzzing mode
+  fuzzing: true
+  # Poll interval for gas price queries (empty string = use default)
+  poll_interval: ""
+  # A list of optional extra params that will be passed to rakoon
+  extra_args: []
+
 # Configuration place for prometheus
 prometheus_params:
   storage_tsdb_retention_time: "1d"
@@ -996,18 +1086,102 @@ bootnodoor_params:
   # A list of optional extra args the bootnodoor container should spin up with
   extra_args: []
 
+# Configuration place for zkboost - https://github.com/eth-act/zkboost
+# The dashboard is automatically enabled when grafana is in additional_services.
+zkboost_params:
+  # zkboost docker image to use
+  # Defaults to the latest image
+  image: "ghcr.io/eth-act/zkboost/zkboost:latest"
+  # List of zkboost instances, each running a separate zkboost container.
+  # Each instance watches one EL participant for new blocks.
+  #   name (required): Kurtosis service name, must be unique across instances
+  #   el_participant_index (required): index of the EL participant to connect to (must not be dummy)
+  # Defaults to a single instance named "zkboost" connected to the first EL participant.
+  instances:
+    - name: zkboost
+      el_participant_index: 0
+  # List of zkVM backend configurations.
+  # If empty or not set, the default shown below (a mock reth-zisk zkvm) is
+  # auto-configured. Each entry must have a unique proof_type.
+  #
+  # Common fields for all entries:
+  #   kind (required): the zkVM backend type
+  #     "mock"     - in-process mock backend for testing, no real proving
+  #     "ere"      - launches a GPU ere-server and connects to it
+  #     "external" - connects to an already-deployed prover via HTTP
+  #   proof_type (required): identifies the EL client + zkVM combination
+  #     "ethrex-risc0", "ethrex-sp1", "ethrex-zisk", "reth-openvm", "reth-risc0", "reth-sp1", "reth-zisk"
+  #   proof_timeout_secs: timeout for proof generation in seconds (default: 12, must be > 0)
+  #
+  # Mock-specific fields (only for kind: mock):
+  #   mock_proving_time: controls simulated proving duration (default: { kind: constant, ms: 6000 })
+  #     { kind: constant, ms: <ms> }                   - fixed duration
+  #     { kind: random, min_ms: <min>, max_ms: <max> } - uniformly random, min_ms must be <= max_ms
+  #     { kind: linear, ms_per_mgas: <ms> }            - proportional to block per million gas usage
+  #   mock_proof_size: simulated proof size in bytes, must be >= 32 (default: 131072 / 128 KiB)
+  #   mock_failure: whether to simulate proving failures (default: false)
+  #
+  # ere-specific fields (only for kind: ere):
+  #   image: docker image for the ere-server (default: resolved from zkboost's
+  #     pinned ere version in its Cargo.toml)
+  #   elf_url: HTTPS URL of the guest ELF to prove. ere-server fetches it
+  #     itself at startup. (default: resolved from zkboost's pinned ere-guests
+  #     version).
+  #   gpu: GPU configuration (default: no GPU)
+  #     count: number of GPUs to allocate (default 0)
+  #         NOTE: if more than one ere service uses gpu.count, Docker will assign
+  #         the same GPU(s) to all of them. Use gpu.device_ids instead when running
+  #         multiple GPU-enabled ere services.
+  #     device_ids: list of specific GPU device IDs to pin to this service (default [])
+  #         Use this to assign distinct GPUs across multiple ere services
+  #         (e.g. ["0"] for the first service and ["1"] for the second).
+  #     shm_size: shared memory size in MB (default 0)
+  #     ulimits: ulimit overrides as a map (default {})
+  #     driver: GPU driver to use (default "nvidia")
+  #         Accepts a string shorthand or a per-backend dict:
+  #         - string: used directly as the Docker DeviceRequest driver; Kubernetes resource
+  #           name is derived as "<driver>.com/gpu"
+  #           e.g. "nvidia" → Docker driver "nvidia", K8s resource "nvidia.com/gpu"
+  #                "amd"    → Docker driver "amd",    K8s resource "amd.com/gpu"
+  #         - dict: explicit per-backend override
+  #           e.g. {docker: "amd", kubernetes: "amd.com/gpu"}
+  #   env: extra environment variables as a map (default {})
+  #
+  # external-specific fields (only for kind: external):
+  #   endpoint (required): full HTTP URL of the already-deployed prover
+  #
+  # example:
+  # - kind: mock
+  #   proof_type: ethrex-zisk
+  #   mock_proving_time: { kind: constant, ms: 5000 }
+  #   mock_proof_size: 1024
+  # - kind: mock
+  #   proof_type: reth-zisk
+  #   mock_proving_time: { kind: random, min_ms: 2000, max_ms: 8000 }
+  # - kind: mock
+  #   proof_type: reth-sp1
+  #   mock_proving_time: { kind: linear, ms_per_mgas: 150 }
+  # - kind: ere
+  #   proof_type: reth-zisk
+  #   image: "ghcr.io/eth-act/ere/ere-server-zisk:latest"
+  #   elf_url: "https://github.com/eth-act/ere-guests/releases/download/v0.8.0/stateless-validator-reth-zisk.elf"
+  #   gpu:
+  #     count: 1
+  #     driver: "nvidia"
+  # - kind: external
+  #   proof_type: reth-zisk
+  #   endpoint: "http://my-prover:3000"
+  zkvms:
+    - kind: mock
+      proof_type: reth-zisk
+      mock_proving_time: { kind: random, min_ms: 2000, max_ms: 8000 }
+      mock_proof_size: 1024
+  # RUST_LOG defaults to "info,zkboost=debug" if not set; other vars pass through unchanged.
+  env:
+    RUST_LOG: "info,zkboost=debug"
+
 # Configuration place for tempo tracing backend
 tempo_params:
-  # How long to retain traces
-  retention_duration: "12h"
-  # Rate limiting for trace ingestion (bytes per second)
-  ingestion_rate_limit: 20971520  # 20MB
-  # Burst limit for trace ingestion (bytes)
-  ingestion_burst_limit: 52428800  # 50MB
-  # Maximum duration for trace searches
-  max_search_duration: "30s"
-  # Maximum bytes per individual trace
-  max_bytes_per_trace: 52428800  # 50MB
   # Resource management for tempo container
   # CPU is milicores
   # RAM is in MB
@@ -1091,11 +1265,18 @@ wait_for_finalization: false
 # This value will be overridden by participant-specific values
 global_log_level: "info"
 
-# Snooper global flag for all participants
-# Snooper can be enabled with the `snooper_enabled` flag per client or globally
-# Snooper dumps all JSON-RPC requests and responses including BeaconAPI, EngineAPI and ExecutionAPI.
-# Default to false
-snooper_enabled: false
+# Configuration for snooper - dumps all JSON-RPC requests and responses
+# including BeaconAPI, EngineAPI and ExecutionAPI
+snooper_params:
+  # Enable snooper globally for all participants
+  enabled: false
+  # The image to use for snooper
+  # Defaults to ethpandaops/rpc-snooper:latest
+  image: ""
+  # Extra arguments to pass to the snooper binary
+  extra_args: []
+  # Extra environment variables to set on the snooper container
+  extra_env_vars: {}
 
 # Enables Ethereum Metrics Exporter for all participants
 # Defaults to false
@@ -1169,7 +1350,7 @@ mempool_bridge_params:
   # Default: "30s"
   retry_interval: "30s"
 
-# Supports six values
+# Supports seven values
 # Default: "null" - no mev boost, mev builder, mev flood or relays are spun up
 # "mock" - mock-builder & mev-boost are spun up
 # "flashbots" - mev-boost, relays, flooder and builder are all spun up, powered by [flashbots](https://github.com/flashbots)
@@ -1177,6 +1358,8 @@ mempool_bridge_params:
 # "commit-boost" - mev-boost, relays and builder are all spun up, powered by [commit-boost](https://github.com/Commit-Boost/commit-boost-client)
 # "helix" - helix relay, flashbots builder and mev-boost are spun up, powered by [helix](https://github.com/gattaca-com/helix)
 #            Note: Helix uses TimescaleDB (PostgreSQL with time-series extension) for data storage
+# "buildoor" - a self-contained builder+relay service & mev-boost are spun up, powered by [buildoor](https://github.com/ethpandaops/buildoor)
+#              Supports both legacy builder API and ePBS bidding. No separate relay infrastructure or builder participant needed.
 # We have seen instances of multibuilder instances failing to start mev-relay-api with non zero epochs
 mev_type: null
 
@@ -1188,6 +1371,8 @@ mev_params:
   mev_builder_image: ethpandaops/reth-rbuilder:develop
   # The image to use for the CL builder
   mev_builder_cl_image: sigp/lighthouse:latest
+  # Extra parameters to send to the CL builder
+  mev_builder_cl_extra_params: []
   # The subsidy to use for the builder (in ETH)
   mev_builder_subsidy: 0
   # The image to use for mev-boost
@@ -1219,6 +1404,41 @@ mev_params:
   mock_mev_image: ethpandaops/rustic-builder:main
   # Whether to launch Adminer for the MEV relay PostgreSQL database
   launch_adminer: false
+  # When true, launches both flashbots and helix relays
+  # The reth-rbuilder will submit bids to both relays and mev-boost will query both relays for bids
+  # Works with mev_type: flashbots
+  run_multiple_relays: false
+  # The image to use for helix relay (used when run_multiple_relays is true or mev_type is helix)
+  helix_relay_image: ghcr.io/gattaca-com/helix-relay:main
+  # Inline Commit-Boost config template. When set, replaces the default auto-generated
+  # config. Template variables {{ .Timestamp }}, {{ .Network }}, {{ .Port }}, {{ .Relays }}
+  # are rendered at enclave creation. Only used when mev_type is "commit-boost".
+  # Example:
+  #   commit_boost_config: |
+  #     chain = { genesis_time_secs = {{ .Timestamp }}, path = "{{ .Network }}" }
+  #     [pbs]
+  #     host = "0.0.0.0"
+  #     port = {{ .Port }}
+  #     skip_sigverify = true
+  #     {{ range $index, $relay := .Relays }}
+  #     [[relays]]
+  #     id = "mev_relay_{{$index}}"
+  #     url = "{{ $relay }}"
+  #     {{- end }}
+  #     [logs.stdout]
+  #     level = "debug"
+  commit_boost_config: ""
+
+# Parameters for the buildoor builder+relay service (used when mev_type is "buildoor")
+buildoor_params:
+  # The image to use for buildoor
+  image: ethpandaops/buildoor:main
+  # Enable the legacy builder API (traditional block building via relay)
+  builder_api: true
+  # Enable ePBS bidding and revealing
+  epbs_builder: true
+  # Extra parameters to pass to the buildoor service
+  extra_args: []
 
 # Enables Xatu Sentry for all participants
 # Defaults to false
@@ -1305,10 +1525,48 @@ spamoor_params:
   # A list of optional params that will be passed to the spamoor command for modifying its behaviour
   extra_args: []
 
+# Configuration place for slashoor - https://github.com/ethpandaops/slashoor
+# Slashoor is a lazy slasher that monitors validators for slashing violations
+# and automatically submits attester slashings to the beacon chain
+slashoor_params:
+  # The image to use for slashoor
+  image: ethpandaops/slashoor:latest
+  # Resource management for slashoor
+  # CPU is milicores
+  # RAM is in MB
+  min_cpu: 100
+  max_cpu: 1000
+  min_mem: 128
+  max_mem: 512
+  # Log level for slashoor (error, warn, info, debug, trace)
+  log_level: info
+  # Timeout for beacon API requests
+  beacon_timeout: 30s
+  # Maximum epochs to keep in memory for slashing detection
+  max_epochs_to_keep: 54000
+  # Number of slots to backfill on startup
+  backfill_slots: 64
+  # Enable the detector service
+  detector_enabled: true
+  # Enable the proposer slashing service
+  proposer_enabled: true
+  # Enable the submitter service
+  submitter_enabled: true
+  # Run in dry-run mode (detect but don't submit slashings)
+  submitter_dry_run: false
+  # Enable dora as a slashing database source
+  dora_enabled: true
+  # Custom dora URL (auto-detected if dora is in additional_services or on public networks)
+  dora_url: ""
+  # Scan dora on startup for existing slashings
+  dora_scan_on_startup: true
+  # A list of optional extra args
+  extra_args: []
+
 # Ethereum genesis generator params
 ethereum_genesis_generator_params:
   # The image to use for ethereum genesis generator
-  image: ethpandaops/ethereum-genesis-generator:5.2.2
+  image: ethpandaops/ethereum-genesis-generator:6.0.2
   # Pass custom environment variables to the genesis generator (e.g. MY_VAR: my_value)
   extra_env: {}
 
@@ -1552,6 +1810,25 @@ network_params:
 </details>
 
 <details>
+    <summary>A 2-node Ethereum network with buildoor (self-contained builder+relay)</summary>
+
+```yaml
+participants:
+  - el_type: geth
+    cl_type: lighthouse
+    count: 2
+mev_type: buildoor
+buildoor_params:
+  builder_api: true
+  epbs_builder: true
+additional_services:
+  - dora
+  - spamoor
+```
+
+</details>
+
+<details>
     <summary>A 3-node Ethereum network with Helix relay for MEV-boost infrastructure</summary>
 
 ```yaml
@@ -1593,12 +1870,50 @@ participants:
   - el_type: geth
     cl_type: lighthouse
     count: 2
-snooper_enabled: true
+snooper_params:
+  enabled: true
 additional_services:
   - prometheus
   - grafana
   - tx_fuzz
 ethereum_metrics_exporter_enabled: true
+```
+
+</details>
+
+<details>
+    <summary>Network with rakoon transaction fuzzer</summary>
+
+```yaml
+participants:
+  - el_type: geth
+    cl_type: lighthouse
+  - el_type: reth
+    cl_type: teku
+additional_services:
+  - rakoon
+rakoon_params:
+  tx_type: "eip7702"
+  workers: 50
+  batch_size: 100
+```
+
+For advanced fuzzing with broadcaster:
+
+```yaml
+participants:
+  - el_type: geth
+    cl_type: lighthouse
+  - el_type: reth
+    cl_type: teku
+additional_services:
+  - broadcaster  # Broadcasts to all nodes
+  - rakoon
+rakoon_params:
+  tx_type: "eip1559"
+  workers: 100
+  batch_size: 200
+  seed: "12345"  # Reproducible fuzzing
 ```
 
 </details>
@@ -1717,6 +2032,7 @@ The package also supports other MEV implementations:
 - `"mev_type": "helix"` - Uses the high-performance [Helix relay](https://github.com/gattaca-com/helix) with TimescaleDB backend for data storage
 - `"mev_type": "mev-rs"` - Alternative relay implementation powered by [mev-rs](https://github.com/ralexstokes/mev-rs/)
 - `"mev_type": "commit-boost"` - Infrastructure powered by [commit-boost](https://github.com/Commit-Boost/commit-boost-client)
+- `"mev_type": "buildoor"` - A self-contained builder+relay service powered by [buildoor](https://github.com/ethpandaops/buildoor). Supports both legacy builder API and ePBS bidding without requiring separate relay infrastructure or a dedicated builder participant.
 
 Each implementation provides different features and performance characteristics suitable for various testing and development scenarios.
 
@@ -1751,6 +2067,7 @@ Here's a table of where the keys are used
 | 11            | mev_custom_flood    | ✅                |                 | As the sender of balance   |
 | 12            | l2_contracts        | ✅                |                 | Contract deployer address  |
 | 13            | spamoor             | ✅                |                 | Spams transactions         |
+| 14            | rakoon              | ✅                |                 | Protocol fuzzing           |
 
 ## Developing On This Package
 
@@ -1820,6 +2137,44 @@ Here's a table of the private keys that can be used to create the nodes:
 | 0x3f2b...0db3 | 0xbcde...0608 | 23, 59, 96, 100, 102, 104, 106, 127 |
 
 Private keys can be found in the `static_files/peerdas-node-keys` directory.
+
+## AI Agent Skill (Claude Code & Codex)
+
+This repository ships with an AI agent skill called `kurtosis-ethereum` that lets AI coding agents spin up and manage Ethereum devnets. The skill is automatically discovered by both [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [OpenAI Codex](https://developers.openai.com/codex/skills/) when working in this repo.
+
+The canonical skill lives at `.claude/skills/kurtosis-ethereum/` with a symlink at `.agents/skills/kurtosis-ethereum/` for Codex compatibility. The same `SKILL.md` works for both agents.
+
+### Installation
+
+**Claude Code:**
+
+Clone the repo and copy the skill to your personal Claude skills folder:
+
+```bash
+git clone https://github.com/ethpandaops/ethereum-package.git
+cp -r ethereum-package/.claude/skills/kurtosis-ethereum ~/.claude/skills/
+```
+
+Claude Code auto-discovers skills in `~/.claude/skills/`. Once copied, invoke with `/kurtosis-ethereum`.
+
+**Codex:** The skill is auto-discovered from `.agents/skills/` when working in this repo. No extra installation needed.
+
+### Usage
+
+Once available, invoke the skill with a natural language prompt:
+
+```
+# Claude Code
+/kurtosis-ethereum spin up a 4-node devnet with geth+lighthouse and reth+prysm with assertoor stability checks
+
+# Codex — the skill is invoked implicitly or via /skills
+spin up a 4-node devnet with geth+lighthouse and reth+prysm with assertoor stability checks
+```
+
+The skill provides:
+- Configuration generation for multi-client devnets
+- A reference tool (`kurtosis-ref.sh`) for looking up supported clients, parameters, fork epochs, MEV options, and CI test examples
+- Templates for common setups (mixed clients, custom images, observer nodes, MEV infrastructure)
 
 <!------------------------ Only links below here -------------------------------->
 

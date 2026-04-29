@@ -58,6 +58,11 @@ def launch_dora(
             )
         )
 
+        # Skip dummy EL clients - they don't have real execution endpoints
+        el_type = participant_configs[index].el_type
+        if el_type == "dummy":
+            continue
+
         snooper_el_engine_context = participant_contexts[
             index
         ].snooper_el_engine_context
@@ -146,32 +151,6 @@ def get_config(
 
     IMAGE_NAME = dora_params.image
     env_vars = dora_params.env
-    default_dora_image = (
-        docker_cache_params.url
-        + (docker_cache_params.dockerhub_prefix if docker_cache_params.enabled else "")
-        + constants.DEFAULT_DORA_IMAGE
-    )
-    if dora_params.image == default_dora_image:
-        if network_params.gloas_fork_epoch < constants.FAR_FUTURE_EPOCH:
-            IMAGE_NAME = (
-                docker_cache_params.url
-                + (
-                    docker_cache_params.dockerhub_prefix
-                    if docker_cache_params.enabled
-                    else ""
-                )
-                + "ethpandaops/dora:eip7732-support"
-            )
-        if network_params.eip7805_fork_epoch < constants.FAR_FUTURE_EPOCH:
-            IMAGE_NAME = (
-                docker_cache_params.url
-                + (
-                    docker_cache_params.dockerhub_prefix
-                    if docker_cache_params.enabled
-                    else ""
-                )
-                + "ethpandaops/dora:eip7805-support"
-            )
 
     return ServiceConfig(
         image=IMAGE_NAME,
@@ -196,9 +175,13 @@ def get_config(
 def new_config_template_data(
     network, listen_port_num, cl_client_info, el_client_info, mev_endpoint_info
 ):
+    public_rpc = ""
+    if len(el_client_info) > 0:
+        public_rpc = el_client_info[0]["Execution_HTTP_URL"]
+
     return {
         "Network": network,
-        "PublicRPC": el_client_info[0]["Execution_HTTP_URL"],
+        "PublicRPC": public_rpc,
         "ListenPortNum": listen_port_num,
         "CLClientInfo": cl_client_info,
         "ELClientInfo": el_client_info,

@@ -18,6 +18,8 @@ CL_TYPE = struct(
     prysm="prysm",
     lodestar="lodestar",
     grandine="grandine",
+    consensoor="consensoor",
+    caplin="caplin",
 )
 
 VC_TYPE = struct(
@@ -27,6 +29,8 @@ VC_TYPE = struct(
     prysm="prysm",
     teku="teku",
     vero="vero",
+    grandine="grandine",
+    consensoor="consensoor",
 )
 
 REMOTE_SIGNER_TYPE = struct(web3signer="web3signer")
@@ -37,6 +41,7 @@ GLOBAL_LOG_LEVEL = struct(
     warn="warn",
     debug="debug",
     trace="trace",
+    custom="custom",
 )
 
 CLIENT_TYPES = struct(
@@ -94,14 +99,16 @@ FLASHBOTS_MEV_TYPE = "flashbots"
 MEV_RS_MEV_TYPE = "mev-rs"
 COMMIT_BOOST_MEV_TYPE = "commit-boost"
 HELIX_MEV_TYPE = "helix"
+BUILDOOR_MEV_TYPE = "buildoor"
 DEFAULT_DORA_IMAGE = "ethpandaops/dora:latest"
 DEFAULT_CHECKPOINTZ_IMAGE = "ethpandaops/checkpointz:latest"
 DEFAULT_SPAMOOR_IMAGE = "ethpandaops/spamoor:latest"
+DEFAULT_SLASHOOR_IMAGE = "ethpandaops/slashoor:latest"
 DEFAULT_ASSERTOOR_IMAGE = "ethpandaops/assertoor:latest"
 DEFAULT_SNOOPER_IMAGE = "ethpandaops/rpc-snooper:latest"
 DEFAULT_BOOTNODOOR_IMAGE = "ethpandaops/bootnodoor:latest"
 DEFAULT_ETHEREUM_GENESIS_GENERATOR_IMAGE = (
-    "ethpandaops/ethereum-genesis-generator:5.2.2"
+    "ethpandaops/ethereum-genesis-generator:6.0.2"
 )
 DEFAULT_YQ_IMAGE = "linuxserver/yq"
 DEFAULT_FLASHBOTS_RELAY_IMAGE = "ethpandaops/mev-boost-relay:main"
@@ -111,7 +118,9 @@ DEFAULT_MEV_RS_IMAGE = "ethpandaops/mev-rs:main"
 DEFAULT_MEV_RS_IMAGE_MINIMAL = "ethpandaops/mev-rs:main-minimal"
 DEFAULT_COMMIT_BOOST_MEV_BOOST_IMAGE = "ghcr.io/commit-boost/pbs:latest"
 DEFAULT_MOCK_MEV_IMAGE = "ethpandaops/rustic-builder:main"
+DEFAULT_BUILDOOR_IMAGE = "ethpandaops/buildoor:main"
 DEFAULT_HELIX_RELAY_IMAGE = "ghcr.io/gattaca-com/helix-relay:main"
+DEFAULT_ZKBOOST_IMAGE = "ghcr.io/eth-act/zkboost/zkboost:latest"
 DEFAULT_MEV_PUBKEY = "0xa55c1285d84ba83a5ad26420cd5ad3091e49c55a813eee651cd467db38a8c8e63192f47955e9376f6b42f6d190571cb5"
 DEFAULT_MEV_SECRET_KEY = (
     "0x607a11b45a7219cc61a3d9c5fd08c7eebd602a6a19a977f8d3771d5711a550f2"
@@ -131,8 +140,7 @@ DENEB_FORK_VERSION = "0x50000038"
 ELECTRA_FORK_VERSION = "0x60000038"
 FULU_FORK_VERSION = "0x70000038"
 GLOAS_FORK_VERSION = "0x80000038"
-EIP7441_FORK_VERSION = "0xa0000038"
-EIP7805_FORK_VERSION = "0x90000038"
+HEZE_FORK_VERSION = "0x90000038"
 
 FAR_FUTURE_EPOCH = 18446744073709551615
 

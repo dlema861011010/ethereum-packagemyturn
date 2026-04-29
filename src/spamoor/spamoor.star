@@ -135,6 +135,7 @@ def get_config(
         "--privkey={}".format(prefunded_addresses[13].private_key),
         "--rpchost-file={}".format(hosts_file_path),
         "--startup-spammer={}".format(config_file_path),
+        "--without-batcher",  # Temp fix, remove later
     ]
 
     public_ports = shared_utils.get_additional_service_standard_public_port(
@@ -170,6 +171,8 @@ def new_config_template_data(
 ):
     startup_spammer_json = []
     for index, spammer in enumerate(startup_spammer):
+        if "name" not in spammer:
+            spammer["name"] = "kurtosis-{0}".format(index)
         startup_spammer_json.append(json.encode(spammer))
 
     return {

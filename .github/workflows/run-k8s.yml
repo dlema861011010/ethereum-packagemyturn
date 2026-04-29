@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup minikube
         id: minikube
@@ -36,7 +36,7 @@ jobs:
       # run kurtosis test and assertoor
       - name: Run kurtosis testnet
         id: testnet
-        uses: ethpandaops/kurtosis-assertoor-github-action@5932604b244dbd2ddb811516b516a9094f4d2c2f # v1
+        uses: ethpandaops/kurtosis-assertoor-github-action@f64942cbc780df731a731ea9f45765b161d2c8df # v1
         with:
           kurtosis_extra_args: "--image-download always --non-blocking-tasks --verbosity DETAILED"
           kurtosis_backend: "kubernetes"

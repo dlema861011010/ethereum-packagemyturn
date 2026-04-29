@@ -60,6 +60,7 @@ def launch(
     network_params,
     extra_files_artifacts,
     bootnodoor_enode=None,
+    el_binary_artifact=None,
 ):
     cl_client_name = service_name.split("-")[3]
 
@@ -79,9 +80,12 @@ def launch(
         network_params,
         extra_files_artifacts,
         bootnodoor_enode,
+        el_binary_artifact,
     )
 
-    service = plan.add_service(service_name, config)
+    service = plan.add_service(
+        service_name, config, force_update=participant.el_force_restart
+    )
 
     return get_el_context(
         plan,
@@ -107,6 +111,7 @@ def get_config(
     network_params,
     extra_files_artifacts,
     bootnodoor_enode=None,
+    el_binary_artifact=None,
 ):
     public_ports = {}
     public_ports_for_component = None
@@ -153,6 +158,7 @@ def get_config(
             if network_params.network in constants.PUBLIC_NETWORKS
             else constants.GENESIS_CONFIG_MOUNT_PATH_ON_CONTAINER + "/genesis.json"
         ),
+        "--syncmode=full",
         "--log.level={0}".format(VERBOSITY_LEVELS[global_log_level]),
         "--http.port={0}".format(RPC_PORT_NUM),
         "--http.addr=0.0.0.0",
@@ -230,10 +236,15 @@ def get_config(
     for mount_path, artifact in processed_mounts.items():
         files[mount_path] = artifact
 
+    # Binary injection - mount custom binary directory if provided
+    if el_binary_artifact != None:
+        files["/opt/bin"] = el_binary_artifact.artifact
+
     config_args = {
         "image": participant.el_image,
         "ports": used_ports,
         "public_ports": public_ports,
+        "publish_udp": port_publisher.el_enabled,
         "cmd": cmd,
         "files": files,
         "private_ip_address_placeholder": constants.PRIVATE_IP_ADDRESS_PLACEHOLDER,
@@ -250,6 +261,16 @@ def get_config(
         "tolerations": tolerations,
         "node_selectors": node_selectors,
     }
+
+    # Binary injection - override entrypoint and cmd only when binary is provided
+    if el_binary_artifact != None:
+        config_args["entrypoint"] = ["sh", "-c"]
+        config_args["cmd"] = [
+            "cp /opt/bin/{0} /usr/local/bin/ethrex && ethrex ".format(
+                el_binary_artifact.filename
+            )
+            + " ".join(cmd)
+        ]
 
     if participant.el_min_cpu > 0:
         config_args["min_cpu"] = participant.el_min_cpu

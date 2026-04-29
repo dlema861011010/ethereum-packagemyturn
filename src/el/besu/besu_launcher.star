@@ -27,6 +27,7 @@ VERBOSITY_LEVELS = {
     constants.GLOBAL_LOG_LEVEL.info: "INFO",
     constants.GLOBAL_LOG_LEVEL.debug: "DEBUG",
     constants.GLOBAL_LOG_LEVEL.trace: "TRACE",
+    constants.GLOBAL_LOG_LEVEL.custom: "CUSTOM",
 }
 
 
@@ -45,6 +46,7 @@ def launch(
     network_params,
     extra_files_artifacts,
     bootnodoor_enode=None,
+    el_binary_artifact=None,
 ):
     cl_client_name = service_name.split("-")[3]
 
@@ -64,9 +66,12 @@ def launch(
         network_params,
         extra_files_artifacts,
         bootnodoor_enode,
+        el_binary_artifact,
     )
 
-    service = plan.add_service(service_name, config)
+    service = plan.add_service(
+        service_name, config, force_update=participant.el_force_restart
+    )
 
     return get_el_context(
         plan,
@@ -92,6 +97,7 @@ def get_config(
     network_params,
     extra_files_artifacts,
     bootnodoor_enode=None,
+    el_binary_artifact=None,
 ):
     log_level = input_parser.get_client_log_level_or_default(
         participant.el_log_level, global_log_level, VERBOSITY_LEVELS
@@ -137,19 +143,24 @@ def get_config(
 
     cmd = [
         "besu",
-        "--logging=" + log_level,
+    ]
+
+    if log_level != "CUSTOM":
+        cmd.append("--logging=" + log_level)
+
+    cmd += [
         "--data-path=" + EXECUTION_DATA_DIRPATH_ON_CLIENT_CONTAINER,
         "--host-allowlist=*",
         "--rpc-http-enabled=true",
         "--rpc-http-host=0.0.0.0",
         "--rpc-http-port={0}".format(RPC_PORT_NUM),
-        "--rpc-http-api=ADMIN,CLIQUE,ETH,NET,DEBUG,TXPOOL,ENGINE,TRACE,WEB3",
+        "--rpc-http-api=ADMIN,ETH,NET,DEBUG,TXPOOL,ENGINE,TRACE,WEB3",
         "--rpc-http-cors-origins=*",
         "--rpc-http-max-active-connections=300",
         "--rpc-ws-enabled=true",
         "--rpc-ws-host=0.0.0.0",
         "--rpc-ws-port={0}".format(WS_PORT_NUM),
-        "--rpc-ws-api=ADMIN,CLIQUE,ETH,NET,DEBUG,TXPOOL,ENGINE,TRACE,WEB3",
+        "--rpc-ws-api=ADMIN,ETH,NET,DEBUG,TXPOOL,ENGINE,TRACE,WEB3",
         "--p2p-enabled=true",
         "--p2p-host=" + port_publisher.el_nat_exit_ip,
         "--p2p-port={0}".format(discovery_port_tcp),
@@ -246,11 +257,23 @@ def get_config(
     for mount_path, artifact in processed_mounts.items():
         files[mount_path] = artifact
 
+    # Binary injection - mount custom binary directory if provided
+    if el_binary_artifact != None:
+        files["/opt/bin"] = el_binary_artifact.artifact
+        # Copy injected binary to override default, then run original command
+        final_cmd_str = (
+            "cp /opt/bin/{0} /opt/besu/bin/besu && ".format(el_binary_artifact.filename)
+            + cmd_str
+        )
+    else:
+        final_cmd_str = cmd_str
+
     config_args = {
         "image": participant.el_image,
         "ports": used_ports,
         "public_ports": public_ports,
-        "cmd": [cmd_str],
+        "publish_udp": port_publisher.el_enabled,
+        "cmd": [final_cmd_str],
         "files": files,
         "entrypoint": ENTRYPOINT_ARGS,
         "private_ip_address_placeholder": constants.PRIVATE_IP_ADDRESS_PLACEHOLDER,

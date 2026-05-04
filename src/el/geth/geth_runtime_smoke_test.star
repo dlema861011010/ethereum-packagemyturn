@@ -1,5 +1,8 @@
 constants = import_module("../../package_io/constants.star")
 
+# Note: PostHttpRequestRecipe and ExecRecipe are Kurtosis built-in types and do
+# not require an explicit import — they are available in every Starlark plan context.
+
 # Expected chain IDs per network (hex-encoded as returned by eth_chainId RPC).
 # constants.FUSESPARK_CHAIN_ID_HEX is the single source of truth for Sparknet.
 EXPECTED_CHAIN_IDS = {

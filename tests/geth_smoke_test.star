@@ -217,14 +217,10 @@ def run_all_tests():
         test_detect_variant_standard,
     ]
 
-    passed = 0
-    failed = 0
     for test_fn in tests:
         test_fn()
-        passed = passed + 1
 
     return struct(
-        passed=passed,
-        failed=failed,
+        passed=len(tests),
         total=len(tests),
     )

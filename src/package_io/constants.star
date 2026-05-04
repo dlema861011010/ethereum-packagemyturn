@@ -153,6 +153,7 @@ NETWORK_NAME = struct(
     kurtosis="kurtosis",
     verkle="verkle",
     shadowfork="shadowfork",
+    sparknet="sparknet",
 )
 
 PUBLIC_NETWORKS = (
@@ -167,6 +168,7 @@ NETWORK_ID = {
     "sepolia": "11155111",
     "holesky": "17000",
     "hoodi": "560048",
+    "sparknet": "123",
 }
 
 CHECKPOINT_SYNC_URL = {
@@ -354,3 +356,26 @@ VOLUME_SIZE["mainnet-shadowfork"] = VOLUME_SIZE["mainnet"]
 VOLUME_SIZE["sepolia-shadowfork"] = VOLUME_SIZE["sepolia"]
 VOLUME_SIZE["holesky-shadowfork"] = VOLUME_SIZE["holesky"]
 VOLUME_SIZE["hoodi-shadowfork"] = VOLUME_SIZE["hoodi"]
+
+# Fuse Network (Sparknet) — Fusespark image, archive mode required for validators
+VOLUME_SIZE["sparknet"] = {
+    "geth_volume_size": 500000,  # 500GB (archive required for Fusespark validators)
+    "erigon_volume_size": 500000,  # 500GB
+    "nethermind_volume_size": 500000,  # 500GB
+    "besu_volume_size": 500000,  # 500GB
+    "reth_volume_size": 500000,  # 500GB
+    "reth_builder_volume_size": 500000,  # 500GB
+    "ethereumjs_volume_size": 500000,  # 500GB
+    "nimbus_eth1_volume_size": 500000,  # 500GB
+    "prysm_volume_size": 200000,  # 200GB
+    "lighthouse_volume_size": 200000,  # 200GB
+    "teku_volume_size": 200000,  # 200GB
+    "nimbus_volume_size": 200000,  # 200GB
+    "lodestar_volume_size": 200000,  # 200GB
+    "grandine_volume_size": 200000,  # 200GB
+    "ethrex_volume_size": 200000,  # 200GB
+}
+
+# Fuse Network (Sparknet) chain identifiers — single source of truth
+FUSESPARK_CHAIN_ID = 123
+FUSESPARK_CHAIN_ID_HEX = "0x7b"  # hex(123)

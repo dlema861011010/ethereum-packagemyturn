@@ -8,6 +8,8 @@ genesis_constants = import_module(
 el_shared = import_module("../el_shared.star")
 node_metrics = import_module("../../node_metrics_info.star")
 constants = import_module("../../package_io/constants.star")
+geth_smoke_test = import_module("./geth_smoke_test.star")
+geth_runtime_smoke_test = import_module("./geth_runtime_smoke_test.star")
 
 RPC_PORT_NUM = 8545
 WS_PORT_NUM = 8546
@@ -35,6 +37,13 @@ VERBOSITY_LEVELS = {
 
 BUILDER_IMAGE_STR = "builder"
 SUAVE_ENABLED_GETH_IMAGE_STR = "suave"
+FUSESPARK_IMAGE_STR = geth_smoke_test.FUSESPARK_IMAGE_STR
+
+# RPC API namespaces per image variant
+FUSESPARK_RPC_APIS = "admin,engine,net,eth,web3,debug,txpool,fuse"
+SUAVE_RPC_APIS = "admin,engine,net,eth,web3,debug,suavex"
+BUILDER_RPC_APIS = "admin,engine,net,eth,web3,debug,mev,flashbots"
+STANDARD_RPC_APIS = "admin,engine,net,eth,web3,debug,txpool"
 
 
 def launch(
@@ -75,6 +84,14 @@ def launch(
 
     service = plan.add_service(service_name, config)
 
+    # POST-LAUNCH SMOKE TEST: verify the node is on the expected chain
+    geth_runtime_smoke_test.validate_runtime_state(
+        plan=plan,
+        service_name=service_name,
+        image_string=participant.el_image,
+        network_params=network_params,
+    )
+
     return get_el_context(
         plan,
         service_name,
@@ -103,6 +120,31 @@ def get_config(
     log_level = input_parser.get_client_log_level_or_default(
         participant.el_log_level, global_log_level, VERBOSITY_LEVELS
     )
+
+    # PRE-FLIGHT SMOKE TEST: validate image/volume/network alignment before launch
+    smoke_test_result = geth_smoke_test.validate_image_volume_alignment(
+        image_string=participant.el_image,
+        network_params=network_params,
+        volume_size=int(participant.el_volume_size) if participant.el_volume_size else 0,
+        el_storage_type=participant.el_storage_type,
+    )
+    if not smoke_test_result.passed:
+        fail(
+            "Smoke Test FAILED: Image/Volume/Network mismatch detected\n"
+            + "Violations:\n  "
+            + "\n  ".join(smoke_test_result.violations)
+            + (
+                "\n\nRecommendations:\n  "
+                + "\n  ".join(smoke_test_result.recommendations)
+                if len(smoke_test_result.recommendations) > 0
+                else ""
+            )
+        )
+    elif len(smoke_test_result.recommendations) > 0:
+        plan.print(
+            "Smoke Test WARNINGS for {0}:\n".format(service_name)
+            + "\n".join(smoke_test_result.recommendations)
+        )
 
     # Check if archive mode is explicitly set via extra params or el_storage_type
     if (
@@ -208,19 +250,24 @@ def get_config(
     if network_params.gas_limit > 0:
         cmd.append("--miner.gaslimit={0}".format(network_params.gas_limit))
 
-    if BUILDER_IMAGE_STR in participant.el_image:
-        for index, arg in enumerate(cmd):
-            if "--http.api" in arg:
-                cmd[index] = "--http.api=admin,engine,net,eth,web3,debug,mev,flashbots"
-            if "--ws.api" in arg:
-                cmd[index] = "--ws.api=admin,engine,net,eth,web3,debug,mev,flashbots"
+    # Detect the geth variant and apply the correct RPC API namespaces.
+    # Priority: fusespark > suave > builder > standard
+    variant = geth_smoke_test.detect_geth_variant(participant.el_image)
+    if variant == "fusespark":
+        rpc_apis = FUSESPARK_RPC_APIS
+    elif variant == "suave":
+        rpc_apis = SUAVE_RPC_APIS
+    elif variant == "builder":
+        rpc_apis = BUILDER_RPC_APIS
+    else:
+        rpc_apis = STANDARD_RPC_APIS
 
-    if SUAVE_ENABLED_GETH_IMAGE_STR in participant.el_image:
+    if rpc_apis != STANDARD_RPC_APIS:
         for index, arg in enumerate(cmd):
             if "--http.api" in arg:
-                cmd[index] = "--http.api=admin,engine,net,eth,web3,debug,suavex"
+                cmd[index] = "--http.api={0}".format(rpc_apis)
             if "--ws.api" in arg:
-                cmd[index] = "--ws.api=admin,engine,net,eth,web3,debug,suavex"
+                cmd[index] = "--ws.api={0}".format(rpc_apis)
 
     # Handle bootnode configuration with bootnodoor_enode override
     if bootnodoor_enode != None:

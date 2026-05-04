@@ -9,6 +9,7 @@ EL_TYPE = struct(
     nimbus="nimbus",
     ethrex="ethrex",
     dummy="dummy",
+    fusespark="fusespark",
 )
 
 CL_TYPE = struct(
@@ -199,6 +200,30 @@ GENESIS_TIME = {
     "hoodi": 1742213400,
 }
 
+# Fusespark / Fuse Network constants (Chain ID 123, Network ID 123)
+FUSESPARK_CHAIN_ID = 123
+FUSESPARK_NETWORK_ID = 123
+FUSESPARK_CHAIN_ID_HEX = "0x7b"
+FUSESPARK_NETWORK_VERSION = "123"
+FUSESPARK_MIN_VALIDATOR_VOLUME_MB = 500000  # 500 GB minimum for validators
+
+# Fuse Network bootnode registry (authoritative enode addresses)
+FUSE_BOOTNODE_REGISTRY = [
+    "enode://57ab1850bbd6cbdf48835d19ccf046efd1228e96c5a5db3a3cdbea3036838a99bd9fb9ff1cb708f34443766cf056e15a5d86d46adf431c15dbfe92af9ec65cf0@135.148.233.9:30303",
+    "enode://9001cf3b321c4c6035b95cf326b7b3524f238aa7bdcdd62f45cf51c4f5e3d0bce0cd5a714c109ebbe4a8806f2017bfd68902ab24e15ab1a2612a120923e31ae9@135.148.232.105:30303",
+]
+
+# Fusespark RPC API namespaces (includes fuse-specific namespace)
+FUSESPARK_RPC_APIS = "admin,engine,net,eth,web3,debug,txpool,fuse"
+
+# Repository path prefixes that authoritatively identify a Fusespark image
+FUSE_REPO_PATTERNS = [
+    "fuse-network-dlemaandliz",
+    "fuse-network",
+    "fuseio/geth",
+    "dlema861011010/fuse",
+]
+
 VOLUME_SIZE = {
     "mainnet": {
         "geth_volume_size": 1000000,  # 1TB
@@ -216,6 +241,7 @@ VOLUME_SIZE = {
         "lodestar_volume_size": 500000,  # 500GB
         "grandine_volume_size": 500000,  # 500GB
         "ethrex_volume_size": 500000,  # 500GB
+        "fusespark_volume_size": 500000,  # 500GB (validator minimum)
     },
     "sepolia": {
         "geth_volume_size": 300000,  # 300GB
@@ -233,6 +259,7 @@ VOLUME_SIZE = {
         "lodestar_volume_size": 150000,  # 150GB
         "grandine_volume_size": 150000,  # 150GB
         "ethrex_volume_size": 150000,  # 150GB
+        "fusespark_volume_size": 500000,  # 500GB (validator minimum)
     },
     "holesky": {
         "geth_volume_size": 100000,  # 100GB
@@ -250,6 +277,7 @@ VOLUME_SIZE = {
         "lodestar_volume_size": 100000,  # 100GB
         "grandine_volume_size": 100000,  # 100GB
         "ethrex_volume_size": 100000,  # 100GB
+        "fusespark_volume_size": 500000,  # 500GB (validator minimum)
     },
     "devnets": {
         "geth_volume_size": 100000,  # 100GB
@@ -267,6 +295,7 @@ VOLUME_SIZE = {
         "lodestar_volume_size": 100000,  # 100GB
         "grandine_volume_size": 100000,  # 100GB
         "ethrex_volume_size": 100000,  # 100GB
+        "fusespark_volume_size": 500000,  # 500GB (validator minimum)
     },
     "ephemery": {
         "geth_volume_size": 5000,  # 5GB
@@ -284,6 +313,7 @@ VOLUME_SIZE = {
         "lodestar_volume_size": 1000,  # 1GB
         "grandine_volume_size": 1000,  # 1GB
         "ethrex_volume_size": 1000,  # 1GB
+        "fusespark_volume_size": 500000,  # 500GB (validator minimum)
     },
     "kurtosis": {
         "geth_volume_size": 5000,  # 5GB
@@ -301,6 +331,7 @@ VOLUME_SIZE = {
         "lodestar_volume_size": 1000,  # 1GB
         "grandine_volume_size": 1000,  # 1GB
         "ethrex_volume_size": 1000,  # 1GB
+        "fusespark_volume_size": 500000,  # 500GB (validator minimum)
     },
     "hoodi": {
         "geth_volume_size": 100000,  # 100GB
@@ -318,6 +349,7 @@ VOLUME_SIZE = {
         "lodestar_volume_size": 100000,  # 100GB
         "grandine_volume_size": 100000,  # 100GB
         "ethrex_volume_size": 100000,  # 100GB
+        "fusespark_volume_size": 500000,  # 500GB (validator minimum)
     },
 }
 # Language mapping for client implementations

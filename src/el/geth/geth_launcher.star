@@ -35,6 +35,39 @@ VERBOSITY_LEVELS = {
 
 BUILDER_IMAGE_STR = "builder"
 SUAVE_ENABLED_GETH_IMAGE_STR = "suave"
+FUSESPARK_IMAGE_STR = "fusespark"
+
+
+def identify_el_variant(image_string):
+    """
+    Multi-layered variant detection with explicit prioritization.
+    Priority: fusespark (repo-backed) > fusespark (tag-based) > suave > builder > standard geth
+
+    Args:
+        image_string (str): The Docker image string to inspect.
+
+    Returns:
+        str: One of "fusespark", "suave", "builder", or "geth".
+    """
+    # Primary check: Fuse Network repository paths (most authoritative)
+    for pattern in constants.FUSE_REPO_PATTERNS:
+        if pattern in image_string:
+            return "fusespark"
+
+    # Secondary check: Tag-based detection
+    if FUSESPARK_IMAGE_STR in image_string:
+        return "fusespark"
+
+    # Remaining variant checks – order matters (suave before builder to avoid
+    # false positives if both tokens appear in a composite image name)
+    if SUAVE_ENABLED_GETH_IMAGE_STR in image_string:
+        return "suave"
+
+    if BUILDER_IMAGE_STR in image_string:
+        return "builder"
+
+    # Default to standard Geth
+    return "geth"
 
 
 def launch(
@@ -208,14 +241,22 @@ def get_config(
     if network_params.gas_limit > 0:
         cmd.append("--miner.gaslimit={0}".format(network_params.gas_limit))
 
-    if BUILDER_IMAGE_STR in participant.el_image:
+    el_variant = identify_el_variant(participant.el_image)
+
+    if el_variant == "fusespark":
+        for index, arg in enumerate(cmd):
+            if "--http.api" in arg:
+                cmd[index] = "--http.api=" + constants.FUSESPARK_RPC_APIS
+            if "--ws.api" in arg:
+                cmd[index] = "--ws.api=" + constants.FUSESPARK_RPC_APIS
+        cmd.append("--networkid={0}".format(constants.FUSESPARK_NETWORK_ID))
+    elif el_variant == "builder":
         for index, arg in enumerate(cmd):
             if "--http.api" in arg:
                 cmd[index] = "--http.api=admin,engine,net,eth,web3,debug,mev,flashbots"
             if "--ws.api" in arg:
                 cmd[index] = "--ws.api=admin,engine,net,eth,web3,debug,mev,flashbots"
-
-    if SUAVE_ENABLED_GETH_IMAGE_STR in participant.el_image:
+    elif el_variant == "suave":
         for index, arg in enumerate(cmd):
             if "--http.api" in arg:
                 cmd[index] = "--http.api=admin,engine,net,eth,web3,debug,suavex"
@@ -225,6 +266,9 @@ def get_config(
     # Handle bootnode configuration with bootnodoor_enode override
     if bootnodoor_enode != None:
         cmd.append("--bootnodes=" + bootnodoor_enode)
+    elif el_variant == "fusespark":
+        # Fusespark nodes connect exclusively to Fuse Network bootnodes for P2P isolation
+        cmd.append("--bootnodes=" + ",".join(constants.FUSE_BOOTNODE_REGISTRY))
     elif (
         network_params.network == constants.NETWORK_NAME.kurtosis
         or constants.NETWORK_NAME.shadowfork in network_params.network
@@ -263,13 +307,16 @@ def get_config(
         volume_size_key = (
             "devnets" if "devnet" in network_params.network else network_params.network
         )
+        el_volume_size_field = (
+            constants.EL_TYPE.fusespark + "_volume_size"
+            if el_variant == "fusespark"
+            else constants.EL_TYPE.geth + "_volume_size"
+        )
         files[EXECUTION_DATA_DIRPATH_ON_CLIENT_CONTAINER] = Directory(
             persistent_key="data-{0}".format(service_name),
             size=int(participant.el_volume_size)
             if int(participant.el_volume_size) > 0
-            else constants.VOLUME_SIZE[volume_size_key][
-                constants.EL_TYPE.geth + "_volume_size"
-            ],
+            else constants.VOLUME_SIZE[volume_size_key][el_volume_size_field],
         )
 
     # Add extra mounts - automatically handle file uploads

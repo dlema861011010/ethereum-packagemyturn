@@ -35,6 +35,51 @@ VERBOSITY_LEVELS = {
 
 BUILDER_IMAGE_STR = "builder"
 SUAVE_ENABLED_GETH_IMAGE_STR = "suave"
+FUSESPARK_IMAGE_STR = "fusespark"
+
+FUSESPARK_RPC_APIS = "admin,engine,net,eth,web3,debug,txpool,fuse"
+SUAVE_RPC_APIS = "admin,engine,net,eth,web3,debug,suavex"
+BUILDER_RPC_APIS = "admin,engine,net,eth,web3,debug,mev,flashbots"
+STANDARD_RPC_APIS = "admin,engine,net,eth,web3,debug,txpool"
+
+# Fusespark-specific volume sizes in MB
+# node: 300 GB, validator: 400 GB, archive: 3 TB
+FUSESPARK_VOLUME_SIZES = {
+    "node": 300000,
+    "validator": 400000,
+    "archive": 3000000,
+}
+
+
+def detect_geth_variant(el_image):
+    """Detect the Geth variant from the image name using priority-based matching.
+
+    Priority order (highest to lowest):
+      1. fusespark - Fuse Network specific
+      2. suave     - SUAVE-enabled Geth
+      3. builder   - MEV builder
+      4. standard  - Plain Geth
+    """
+    if FUSESPARK_IMAGE_STR in el_image:
+        return "fusespark"
+    elif SUAVE_ENABLED_GETH_IMAGE_STR in el_image:
+        return "suave"
+    elif BUILDER_IMAGE_STR in el_image:
+        return "builder"
+    else:
+        return "standard"
+
+
+def get_rpc_apis_for_variant(variant):
+    """Return the correct RPC namespace string for the given Geth variant."""
+    if variant == "fusespark":
+        return FUSESPARK_RPC_APIS
+    elif variant == "suave":
+        return SUAVE_RPC_APIS
+    elif variant == "builder":
+        return BUILDER_RPC_APIS
+    else:
+        return STANDARD_RPC_APIS
 
 
 def launch(
@@ -208,19 +253,14 @@ def get_config(
     if network_params.gas_limit > 0:
         cmd.append("--miner.gaslimit={0}".format(network_params.gas_limit))
 
-    if BUILDER_IMAGE_STR in participant.el_image:
+    variant = detect_geth_variant(participant.el_image)
+    rpc_apis = get_rpc_apis_for_variant(variant)
+    if variant != "standard":
         for index, arg in enumerate(cmd):
             if "--http.api" in arg:
-                cmd[index] = "--http.api=admin,engine,net,eth,web3,debug,mev,flashbots"
+                cmd[index] = "--http.api=" + rpc_apis
             if "--ws.api" in arg:
-                cmd[index] = "--ws.api=admin,engine,net,eth,web3,debug,mev,flashbots"
-
-    if SUAVE_ENABLED_GETH_IMAGE_STR in participant.el_image:
-        for index, arg in enumerate(cmd):
-            if "--http.api" in arg:
-                cmd[index] = "--http.api=admin,engine,net,eth,web3,debug,suavex"
-            if "--ws.api" in arg:
-                cmd[index] = "--ws.api=admin,engine,net,eth,web3,debug,suavex"
+                cmd[index] = "--ws.api=" + rpc_apis
 
     # Handle bootnode configuration with bootnodoor_enode override
     if bootnodoor_enode != None:
@@ -263,13 +303,23 @@ def get_config(
         volume_size_key = (
             "devnets" if "devnet" in network_params.network else network_params.network
         )
+        if int(participant.el_volume_size) > 0:
+            vol_size = int(participant.el_volume_size)
+        elif variant == "fusespark":
+            # Use Fusespark-specific volume sizing based on storage type
+            if gcmode_archive:
+                vol_size = FUSESPARK_VOLUME_SIZES["archive"]
+            elif participant.el_storage_type == "validator":
+                vol_size = FUSESPARK_VOLUME_SIZES["validator"]
+            else:
+                vol_size = FUSESPARK_VOLUME_SIZES["node"]
+        else:
+            vol_size = constants.VOLUME_SIZE[volume_size_key][
+                constants.EL_TYPE.geth + "_volume_size"
+            ]
         files[EXECUTION_DATA_DIRPATH_ON_CLIENT_CONTAINER] = Directory(
             persistent_key="data-{0}".format(service_name),
-            size=int(participant.el_volume_size)
-            if int(participant.el_volume_size) > 0
-            else constants.VOLUME_SIZE[volume_size_key][
-                constants.EL_TYPE.geth + "_volume_size"
-            ],
+            size=vol_size,
         )
 
     # Add extra mounts - automatically handle file uploads
